@@ -1,18 +1,15 @@
-#ifndef DICEROLLER_H
-#define DICEROLLER_H
+#pragma once
+#include <map>
+#include "RollData.h"
 
-#include <stdlib.h>     /* srand, rand */
-#include <time.h>       /* time */
-#include <queue>
+int rollKeep(RollData &data);
 
-int rollKeepExplode(int dicePool, int diceSize, int keep, int explode);
+float findAverage(RollData &data);
 
-float findAverageExplode(int dicePool, int diceSize, int keep, int explode, int numberOfRolls);
+int keepDice(std::vector<int>& pool, int keep);
 
-int keepDice(vector<int> &pool, int keep);
+void diceCounter(RollData &data, std::vector<int>& rolls, std::vector<long long>& curve, int position);
 
-void diceCounter(int &dicePool, int &diceSize, int &keep, vector<int> &rolls, vector<long long> &curve, int position);
+void diceCounterEmpirical(RollData &data, std::map<int, int>& OUT_rollMap);
 
-vector<long long> findOdds(int dicePool, int diceSize, int keep);
-
-#endif
+std::vector<long long> findOdds(RollData data);
