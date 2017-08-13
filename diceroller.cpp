@@ -1,6 +1,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 #include <queue>		/* std::vector, std::queue, std::priority_queue */
+#include <thread>		/* std::thread, std::join */
 #include <iostream>		/* std::cout, std::endl */
 #include <map>			/* std::map */
 #include "DiceRoller.h"
@@ -41,14 +42,12 @@ float findAverage(RollData &data)
 }
 
 int keepDice(std::vector<int> &pool, int keep) {			//Takes a vector(pool) and an int(keep) and returns the total of the keep highest values in pool.
-	std::priority_queue<int> set;
 	int total = 0;
-	for (int i = 1; i < pool.size(); i++) {
-		set.push(pool[i]);
-	}
-	for (int i = 0; i < keep; i++) {
-		total += set.top();
-		set.pop();
+	std::vector<int> set(pool);
+	std::sort(set.begin(), set.end(), std::greater<int>());
+	for (size_t i = 0; i < keep; i++)
+	{
+		total += set[i];
 	}
 	return total;
 }
@@ -58,9 +57,10 @@ void diceCounter(RollData &data, std::vector<int> &rolls, std::vector<long long>
 	for (int i = 1; i <= data.DiceSize; i++) 
 	{
 		rolls[position] = i;
-		if (data.DicePool == position) 
+		if (data.DicePool == position + 1) 
 		{
-			curve[keepDice(rolls, data.DiceKeep)] += 1;
+			int pos = keepDice(rolls, data.DiceKeep);
+			curve[pos] += 1;
 		}
 		else 
 		{
@@ -78,13 +78,46 @@ void diceCounterEmpirical(RollData &data, std::map<int, int> &OUT_rollMap)
 	}
 }
 
-std::vector<long long> findOdds(RollData data) {
-
+std::vector<long long> findOdds(RollData data) 
+{
 	std::vector<int> rolls;
-	rolls.resize(data.DicePool+1);
+	rolls.resize(data.DicePool);
 	std::vector<long long> curve;
-	int size = data.DiceSize*data.DiceKeep + 1;
-	curve.resize(size);
-	diceCounter(data, rolls, curve, 1);
+	curve.resize(data.DiceSize*data.DiceKeep + 1);
+	diceCounter(data, rolls, curve, 0);
 	return curve;
+}
+
+std::vector<long long> findOddsThreaded(RollData data)
+{
+	int numberOfThreads = data.DiceSize;
+	std::vector<std::thread> tasks(numberOfThreads);
+	std::vector<std::vector<long long>> curves(numberOfThreads);
+	std::vector<int> rolls;
+	rolls.resize(data.DicePool);
+
+	for (int i = 0; i < numberOfThreads; ++i)
+	{
+		
+		rolls[0] = i+1;
+		curves[i].resize(data.DiceSize*data.DiceKeep + 1);
+		tasks[i] = std::thread(diceCounter,
+			data,						//RollData object
+			rolls,						//RollTracker
+			std::ref(curves[i]),		//ResultTracker
+			1
+		);
+	}
+	
+	for_each(tasks.begin(), tasks.end(), std::mem_fn(&std::thread::join));
+
+	std::vector<long long> results(data.DiceSize*data.DiceKeep + 1);
+	for each (auto curve in curves)
+	{
+		for (size_t i = data.DiceKeep; i < data.DiceSize*data.DiceKeep + 1; i++)
+		{
+			results[i] += curve[i];
+		}
+	}
+	return results;
 }

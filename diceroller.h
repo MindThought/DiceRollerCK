@@ -13,3 +13,5 @@ void diceCounter(RollData &data, std::vector<int>& rolls, std::vector<long long>
 void diceCounterEmpirical(RollData &data, std::map<int, int>& OUT_rollMap);
 
 std::vector<long long> findOdds(RollData data);
+
+std::vector<long long> findOddsThreaded(RollData data);
